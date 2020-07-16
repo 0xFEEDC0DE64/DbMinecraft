@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDataStream>
+#include <QUuid>
 
 #include <tuple>
 
@@ -30,6 +31,9 @@ public:
 
     template<typename T>
     void writeVar(T value);
+
+    QUuid readUuid();
+    void writeUuid(const QUuid &uuid);
 };
 
 template<typename T>

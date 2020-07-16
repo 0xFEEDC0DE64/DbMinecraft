@@ -82,6 +82,20 @@ void McDataStream::writeDouble(double value)
     setFloatingPointPrecision(precision);
 }
 
+QUuid McDataStream::readUuid()
+{
+    char buf[16];
+    readRawData(buf, 16);
+    return {};
+}
+
+void McDataStream::writeUuid(const QUuid &uuid)
+{
+    Q_UNUSED(uuid)
+
+    writeRawData("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16);
+}
+
 template<>
 qint32 McDataStream::readVar<qint32>(qint32 &bytesRead)
 {

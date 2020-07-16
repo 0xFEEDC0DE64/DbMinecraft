@@ -1,6 +1,9 @@
 #include <QCoreApplication>
 #include <qlogging.h>
 #include <QTcpServer>
+#include <QList>
+#include <QPointer>
+#include <QTimer>
 
 #include "client.h"
 
@@ -19,10 +22,37 @@ int main(int argc, char *argv[])
                                       "%{function}(): "
                                       "%{message}"));
 
+    QList<QPointer<Client>> clients;
+
+    QTimer timer;
+    timer.setInterval(100);
+    QObject::connect(&timer, &QTimer::timeout, [&clients](){
+        const auto now = QDateTime::currentDateTime();
+        for (auto iter = std::begin(clients); iter != std::end(clients); )
+        {
+            if ((*iter).isNull())
+            {
+                iter = clients.erase(iter);
+                continue;
+            }
+
+            auto &client = **iter;
+            if (client.state() == PlayState)
+            {
+                client.keepAlive();
+                client.sendChatMessage();
+                client.trialDisconnect();
+            }
+
+            iter++;
+        }
+    });
+    timer.start();
+
     QTcpServer server;
 
-    QObject::connect(&server, &QTcpServer::newConnection, [&server](){
-        new Client(server.nextPendingConnection());
+    QObject::connect(&server, &QTcpServer::newConnection, [&server,&clients](){
+        clients.append(new Client(server.nextPendingConnection()));
     });
 
     if(!server.listen(QHostAddress::Any, 25565))

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QDateTime>
 
 #include "mcdatastream.h"
 #include "packets.h"
@@ -13,6 +14,12 @@ class Client : public QObject
 
 public:
     explicit Client(QTcpSocket *socket, QObject *parent = nullptr);
+
+    SocketState state() const { return m_state; }
+
+    void keepAlive();
+    void sendChatMessage();
+    void trialDisconnect();
 
 private Q_SLOTS:
     void readyRead();
@@ -30,4 +37,9 @@ private:
     qint32 m_packetSize;
 
     SocketState m_state;
+
+    const QDateTime m_connectedSince;
+    QDateTime m_lastKeepAliveSent;
+    QDateTime m_lastKeepAliveReceived;
+    QDateTime m_lastChatMessage;
 };

@@ -2,6 +2,8 @@
 
 #include <QtGlobal>
 #include <QString>
+#include <QDebug>
+#include <QtCore>
 
 #include <tuple>
 
@@ -12,7 +14,10 @@ enum SocketState { HandshakingState, StatusState, LoginState, PlayState, ClosedS
 namespace packets {
     namespace handshaking {
         namespace serverbound {
-            enum PacketType { PacketHandshake };
+            Q_NAMESPACE
+
+            enum class PacketType { Handshake };
+            Q_ENUM_NS(PacketType)
 
             struct Handshake {
                 Handshake(McDataStream &stream);
@@ -30,7 +35,10 @@ namespace packets {
 
     namespace status {
         namespace serverbound {
-            enum PacketType { PacketRequest, PacketPing };
+            Q_NAMESPACE
+
+            enum class PacketType { Request, Ping };
+            Q_ENUM_NS(PacketType)
 
             struct Request {
                 Request(McDataStream &stream);
@@ -44,7 +52,10 @@ namespace packets {
         }
 
         namespace clientbound {
-            enum PacketType { PacketResponse, PacketPong };
+            Q_NAMESPACE
+
+            enum class PacketType { Response, Pong };
+            Q_ENUM_NS(PacketType)
 
             struct Response {
                 QString jsonResponse;
@@ -62,7 +73,10 @@ namespace packets {
 
     namespace login {
         namespace serverbound {
-            enum PacketType { PacketLogin };
+            Q_NAMESPACE
+
+            enum class PacketType { Login };
+            Q_ENUM_NS(PacketType)
 
             struct Login {
                 Login(McDataStream &stream);
@@ -72,7 +86,10 @@ namespace packets {
         }
 
         namespace clientbound {
-            enum PacketType { PacketLoginSuccess = 0x02 };
+            Q_NAMESPACE
+
+            enum class PacketType { LoginSuccess = 0x02 };
+            Q_ENUM_NS(PacketType)
 
             struct LoginSuccess {
                 QString uuid;
@@ -85,7 +102,10 @@ namespace packets {
 
     namespace play {
         namespace serverbound {
-            enum PacketType { PacketClientSettings = 0x04, PacketPluginMessage = 0x0A };
+            Q_NAMESPACE
+
+            enum class PacketType { ClientSettings = 0x04, InteractEntity = 0x0E, PluginMessage = 0x0A };
+            Q_ENUM_NS(PacketType)
 
             struct ClientSettings {
                 ClientSettings(McDataStream &stream);
@@ -98,6 +118,19 @@ namespace packets {
                 qint32 mainHand;
             };
 
+            struct InteractEntity {
+                InteractEntity(McDataStream &stream);
+
+                qint32 entityId;
+                enum Type : qint32 { Interact, Attack, InteractAt };
+                Type type;
+                std::optional<float> targetX;
+                std::optional<float> targetY;
+                std::optional<float> targetZ;
+                enum Hand : qint32 { MainHand, OffHand };
+                std::optional<Hand> hand;
+            };
+
             struct PluginMessage {
                 PluginMessage(McDataStream &stream);
 
@@ -107,11 +140,22 @@ namespace packets {
         }
 
         namespace clientbound {
-            enum PacketType { PacketServerDifficulty = 0x0D, PacketPluginMessage = 0x19, PacketJoinGame = 0x25, PacketPlayerAbilities = 0x2E, PacketPlayerPositionAndLook = 0x32,
-                              PacketSpawnPosition = 0x49 };
+            Q_NAMESPACE
+
+            enum class PacketType { ServerDifficulty = 0x0D, ChatMessage = 0x0E, PluginMessage = 0x19, Disconnect = 0x1B, KeepAlive = 0x21,
+                                    JoinGame = 0x25, PlayerAbilities = 0x2E, PlayerPositionAndLook = 0x32, SpawnPosition = 0x49 };
+            Q_ENUM_NS(PacketType)
 
             struct ServerDifficulty {
                 quint8 difficulty;
+
+                void serialize(McDataStream &stream);
+            };
+
+            struct ChatMessage {
+                QString jsonData;
+                enum Position : qint8 { Chat, SystemMessage, GameInfo };
+                Position position;
 
                 void serialize(McDataStream &stream);
             };
@@ -123,10 +167,18 @@ namespace packets {
                 void serialize(McDataStream &stream);
             };
 
+            struct Disconnect {
+                QString reason;
+
+                void serialize(McDataStream &stream);
+            };
+
             struct JoinGame {
                 qint32 entityid;
-                quint8 gamemode;
-                qint32 dimension;
+                enum Gamemode : quint8 { Survival, Creative, Adventure, Spectator, Hardcore = 0x08 };
+                Gamemode gamemode;
+                enum Dimension : qint32 { Nether=-1, Overworld=0, End=1 };
+                Dimension dimension;
                 quint8 difficulty;
                 quint8 maxPlayers;
                 QString levelType;
@@ -157,6 +209,12 @@ namespace packets {
 
             struct SpawnPosition {
                 std::tuple<qint32, qint16, qint32> location;
+
+                void serialize(McDataStream &stream);
+            };
+
+            struct KeepAlive {
+                qint64 keepAliveId;
 
                 void serialize(McDataStream &stream);
             };
