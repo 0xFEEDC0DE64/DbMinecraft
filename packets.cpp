@@ -1,5 +1,7 @@
 #include "packets.h"
 
+#include <QtGlobal>
+
 #include "mcdatastream.h"
 
 packets::handshaking::serverbound::Handshake::Handshake(McDataStream &stream)
@@ -79,6 +81,7 @@ packets::play::serverbound::InteractEntity::InteractEntity(McDataStream &stream)
         targetX = stream.readFloat();
         targetY = stream.readFloat();
         targetZ = stream.readFloat();
+        [[fallthrough]];
     case Interact:
         hand = Hand(stream.readVar<qint32>());
     }

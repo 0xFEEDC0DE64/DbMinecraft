@@ -9,8 +9,6 @@
 
 class McDataStream;
 
-enum SocketState { HandshakingState, StatusState, LoginState, PlayState, ClosedState };
-
 namespace packets {
     namespace handshaking {
         namespace serverbound {
@@ -20,16 +18,27 @@ namespace packets {
             Q_ENUM_NS(PacketType)
 
             struct Handshake {
+                Q_GADGET
+
+            public:
                 Handshake(McDataStream &stream);
 
                 qint32 protocolVersion;
                 QString serverAddress;
                 quint16 serverPort;
+
+                enum class SocketState { HandshakingState, StatusState, LoginState, PlayState, ClosedState };
+                Q_ENUM(SocketState)
+
                 SocketState nextState;
             };
         }
 
         namespace clientbound {
+            Q_NAMESPACE
+
+            enum class PacketType {};
+            Q_ENUM_NS(PacketType)
         }
     }
 
@@ -218,6 +227,22 @@ namespace packets {
 
                 void serialize(McDataStream &stream);
             };
+        }
+    }
+
+    namespace closed {
+        namespace serverbound {
+            Q_NAMESPACE
+
+            enum class PacketType {};
+            Q_ENUM_NS(PacketType)
+        }
+
+        namespace clientbound {
+            Q_NAMESPACE
+
+            enum class PacketType {};
+            Q_ENUM_NS(PacketType)
         }
     }
 }

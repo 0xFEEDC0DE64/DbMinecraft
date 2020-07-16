@@ -5,11 +5,21 @@ CONFIG += c++1z
 DEFINES += QT_DEPRECATED_WARNINGS QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
 SOURCES += main.cpp \
-    client.cpp \
+    closedclient.cpp \
+    handshakingclient.cpp \
+    loginclient.cpp \
     mcdatastream.cpp \
-    packets.cpp
+    packets.cpp \
+    playclient.cpp \
+    server.cpp \
+    statusclient.cpp
 
 HEADERS += \
-    client.h \
+    closedclient.h \
+    handshakingclient.h \
+    loginclient.h \
     mcdatastream.h \
-    packets.h
+    packets.h \
+    playclient.h \
+    server.h \
+    statusclient.h
