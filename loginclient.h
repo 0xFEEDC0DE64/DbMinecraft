@@ -15,7 +15,8 @@ class LoginClient : public QObject
     Q_OBJECT
 
 public:
-    explicit LoginClient(QTcpSocket &socket, Server &server);
+    explicit LoginClient(std::unique_ptr<QTcpSocket> &&socket, Server &server);
+    ~LoginClient() override;
 
 private slots:
     void readyRead();
@@ -23,7 +24,7 @@ private slots:
 private:
     void readPacket(packets::login::serverbound::PacketType type, const QByteArray &buffer);
 
-    QTcpSocket &m_socket;
+    std::unique_ptr<QTcpSocket> m_socket;
     Server &m_server;
 
     McDataStream m_dataStream;

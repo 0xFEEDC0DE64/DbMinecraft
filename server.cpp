@@ -1,6 +1,9 @@
 #include "server.h"
 
+#include <memory>
+
 #include <QDateTime>
+#include <QTcpSocket>
 
 #include "playclient.h"
 #include "handshakingclient.h"
@@ -34,14 +37,15 @@ void Server::timeout()
     {
         client->keepAlive();
         client->sendChatMessage();
+        client->randomizeStats();
         client->trialDisconnect();
     }
 }
 
 void Server::newConnection()
 {
-    auto * const connection = m_server.nextPendingConnection();
+    auto connection = std::unique_ptr<QTcpSocket>(m_server.nextPendingConnection());
     if (connection)
-        new HandshakingClient{*connection, *this};
+        new HandshakingClient{std::move(connection), *this};
     //clients.push_back();
 }

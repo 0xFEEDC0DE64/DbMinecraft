@@ -15,7 +15,8 @@ class ClosedClient : public QObject
     Q_OBJECT
 
 public:
-    explicit ClosedClient(QTcpSocket &socket, Server &server);
+    explicit ClosedClient(std::unique_ptr<QTcpSocket> &&socket, Server &server);
+    ~ClosedClient() override;
 
 private slots:
     void readyRead();
@@ -23,7 +24,7 @@ private slots:
 private:
     void readPacket(packets::closed::serverbound::PacketType type, const QByteArray &buffer);
 
-    QTcpSocket &m_socket;
+    std::unique_ptr<QTcpSocket> m_socket;
     Server &m_server;
 
     McDataStream m_dataStream;

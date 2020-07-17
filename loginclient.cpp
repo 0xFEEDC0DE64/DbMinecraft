@@ -5,18 +5,20 @@
 #include "server.h"
 #include "playclient.h"
 
-LoginClient::LoginClient(QTcpSocket &socket, Server &server) :
-    QObject{&server}, m_socket{socket}, m_server{server}, m_dataStream{&m_socket}
+LoginClient::LoginClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
+    QObject{&server}, m_socket{std::move(socket)}, m_server{server}, m_dataStream{m_socket.get()}
 {
-    m_socket.setParent(this);
+    m_socket->setParent(this);
 
-    connect(&m_socket, &QIODevice::readyRead, this, &LoginClient::readyRead);
-    connect(&m_socket, &QAbstractSocket::disconnected, this, &QObject::deleteLater);
+    connect(m_socket.get(), &QIODevice::readyRead, this, &LoginClient::readyRead);
+    connect(m_socket.get(), &QAbstractSocket::disconnected, this, &QObject::deleteLater);
 }
+
+LoginClient::~LoginClient() = default;
 
 void LoginClient::readyRead()
 {
-    while(m_socket.bytesAvailable())
+    while(m_socket && m_socket->bytesAvailable())
     {
         if(!m_packetSize)
         {
@@ -24,16 +26,16 @@ void LoginClient::readyRead()
             qDebug() << "packet size" << m_packetSize;
         }
 
-        if(m_socket.bytesAvailable() < m_packetSize)
+        if(m_socket->bytesAvailable() < m_packetSize)
         {
-            qWarning() << "packet not fully available" << m_socket.bytesAvailable();
+            qWarning() << "packet not fully available" << m_socket->bytesAvailable();
             return;
         }
 
         qint32 bytesRead;
         const auto type = m_dataStream.readVar<qint32>(bytesRead);
         m_packetSize -= bytesRead;
-        const auto buffer = m_socket.read(m_packetSize);
+        const auto buffer = m_socket->read(m_packetSize);
         Q_ASSERT(buffer.size() == m_packetSize);
         m_packetSize = 0;
 
@@ -64,7 +66,8 @@ void LoginClient::readPacket(packets::login::serverbound::PacketType type, const
             packet.username = name;
             packet.serialize(m_dataStream);
         }
-        new PlayClient{m_socket, m_server};
+        m_dataStream.setDevice({});
+        new PlayClient{std::move(m_socket), m_server};
         deleteLater();
         break;
     }

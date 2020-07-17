@@ -1,11 +1,11 @@
 #pragma once
 
+#include <set>
+
 #include <QObject>
 #include <QTimer>
 #include <QTcpServer>
 #include <QPointer>
-
-#include <set>
 
 class PlayClient;
 

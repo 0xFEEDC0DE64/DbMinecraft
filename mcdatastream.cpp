@@ -93,7 +93,8 @@ void McDataStream::writeUuid(const QUuid &uuid)
 {
     Q_UNUSED(uuid)
 
-    writeRawData("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16);
+    const char buf[16]{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    writeRawData(buf, 16);
 }
 
 template<>

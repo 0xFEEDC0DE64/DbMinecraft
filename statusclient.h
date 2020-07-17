@@ -15,7 +15,8 @@ class StatusClient : public QObject
     Q_OBJECT
 
 public:
-    explicit StatusClient(QTcpSocket &socket, Server &server);
+    explicit StatusClient(std::unique_ptr<QTcpSocket> &&socket, Server &server);
+    ~StatusClient() override;
 
 private slots:
     void readyRead();
@@ -23,7 +24,7 @@ private slots:
 private:
     void readPacket(packets::status::serverbound::PacketType type, const QByteArray &buffer);
 
-    QTcpSocket &m_socket;
+    std::unique_ptr<QTcpSocket> m_socket;
     Server &m_server;
 
     McDataStream m_dataStream;

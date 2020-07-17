@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <QObject>
 
 #include "mcdatastream.h"
@@ -15,7 +17,8 @@ class HandshakingClient : public QObject
     Q_OBJECT
 
 public:
-    explicit HandshakingClient(QTcpSocket &socket, Server &parent);
+    explicit HandshakingClient(std::unique_ptr<QTcpSocket> &&socket, Server &parent);
+    ~HandshakingClient() override;
 
 private slots:
     void readyRead();
@@ -23,7 +26,7 @@ private slots:
 private:
     void readPacket(packets::handshaking::serverbound::PacketType type, const QByteArray &buffer);
 
-    QTcpSocket &m_socket;
+    std::unique_ptr<QTcpSocket> m_socket;
     Server &m_server;
 
     McDataStream m_dataStream;

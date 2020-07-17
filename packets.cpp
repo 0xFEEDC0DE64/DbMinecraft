@@ -93,6 +93,22 @@ packets::play::serverbound::PluginMessage::PluginMessage(McDataStream &stream)
     //TODO read to end of buffer
 }
 
+void packets::play::clientbound::SpawnMob::serialize(McDataStream &stream)
+{
+    QByteArray buffer;
+    McDataStream tempStream(&buffer, QIODevice::WriteOnly);
+    tempStream.writeVar<qint32>(qint32(PacketType::SpawnMob));
+    tempStream.writeVar<qint32>(entityId);
+    tempStream.writeUuid(uuid);
+    tempStream.writeVar<qint32>(type);
+    tempStream.writeDouble(x);
+    tempStream.writeDouble(y);
+    tempStream.writeDouble(z);
+    tempStream << yaw << pitch << headPitch << velocityX << velocityY << velocityZ;
+    stream.writeVar<qint32>(buffer.length());
+    stream.writeRawData(buffer.constData(), buffer.length());
+}
+
 void packets::play::clientbound::ServerDifficulty::serialize(McDataStream &stream)
 {
     QByteArray buffer;
@@ -179,6 +195,30 @@ void packets::play::clientbound::PlayerPositionAndLook::serialize(McDataStream &
     stream.writeRawData(buffer.constData(), buffer.length());
 }
 
+void packets::play::clientbound::SetExperience::serialize(McDataStream &stream)
+{
+    QByteArray buffer;
+    McDataStream tempStream(&buffer, QIODevice::WriteOnly);
+    tempStream.writeVar<qint32>(qint32(PacketType::SetExperience));
+    tempStream.writeFloat(experienceBar);
+    tempStream.writeVar<qint32>(level);
+    tempStream.writeVar<qint32>(totalExperience);
+    stream.writeVar<qint32>(buffer.length());
+    stream.writeRawData(buffer.constData(), buffer.length());
+}
+
+void packets::play::clientbound::UpdateHealth::serialize(McDataStream &stream)
+{
+    QByteArray buffer;
+    McDataStream tempStream(&buffer, QIODevice::WriteOnly);
+    tempStream.writeVar<qint32>(qint32(PacketType::UpdateHealth));
+    tempStream.writeFloat(health);
+    tempStream.writeVar<qint32>(food);
+    tempStream.writeFloat(foodSaturation);
+    stream.writeVar<qint32>(buffer.length());
+    stream.writeRawData(buffer.constData(), buffer.length());
+}
+
 void packets::play::clientbound::SpawnPosition::serialize(McDataStream &stream)
 {
     QByteArray buffer;
@@ -195,6 +235,22 @@ void packets::play::clientbound::KeepAlive::serialize(McDataStream &stream)
     McDataStream tempStream(&buffer, QIODevice::WriteOnly);
     tempStream.writeVar<qint32>(qint32(PacketType::KeepAlive));
     tempStream << keepAliveId;
+    stream.writeVar<qint32>(buffer.length());
+    stream.writeRawData(buffer.constData(), buffer.length());
+}
+
+void packets::play::clientbound::ChunkData::serialize(McDataStream &stream)
+{
+    QByteArray buffer;
+    McDataStream tempStream(&buffer, QIODevice::WriteOnly);
+    tempStream.writeVar<qint32>(qint32(PacketType::ChunkData));
+    tempStream << chunkX << chunkY << fullChunk;
+    tempStream.writeVar<qint32>(primaryBitMask);
+    tempStream.writeVar<qint32>(data.size());
+    tempStream.writeRawData(data.constData(), data.size());
+    tempStream.writeVar<qint32>(blockEntities.size());
+    for (const auto &blockEntitiy : blockEntities)
+        tempStream.writeRawData(blockEntitiy.constData(), blockEntitiy.size());
     stream.writeVar<qint32>(buffer.length());
     stream.writeRawData(buffer.constData(), buffer.length());
 }

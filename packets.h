@@ -1,15 +1,18 @@
 #pragma once
 
+#include <tuple>
+#include <optional>
+
 #include <QtGlobal>
 #include <QString>
 #include <QDebug>
 #include <QtCore>
 
-#include <tuple>
-
 class McDataStream;
 
 namespace packets {
+    using angle = quint8; // A rotation angle in steps of 1/256 of a full turn
+
     namespace handshaking {
         namespace serverbound {
             Q_NAMESPACE
@@ -151,9 +154,28 @@ namespace packets {
         namespace clientbound {
             Q_NAMESPACE
 
-            enum class PacketType { ServerDifficulty = 0x0D, ChatMessage = 0x0E, PluginMessage = 0x19, Disconnect = 0x1B, KeepAlive = 0x21,
-                                    JoinGame = 0x25, PlayerAbilities = 0x2E, PlayerPositionAndLook = 0x32, SpawnPosition = 0x49 };
+            enum class PacketType { SpawnMob = 0x03, ServerDifficulty = 0x0D, ChatMessage = 0x0E, PluginMessage = 0x19, Disconnect = 0x1B,
+                                    KeepAlive = 0x21, ChunkData = 0x22, JoinGame = 0x25, PlayerAbilities = 0x2E, PlayerPositionAndLook = 0x32,
+                                    SetExperience = 0x43, UpdateHealth = 0x44, SpawnPosition = 0x49 };
             Q_ENUM_NS(PacketType)
+
+            // does not work yet, client shows exception
+            struct SpawnMob {
+                qint32 entityId;
+                QUuid uuid;
+                qint32 type;
+                double x;
+                double y;
+                double z;
+                angle yaw;
+                angle pitch;
+                angle headPitch;
+                qint16 velocityX;
+                qint16 velocityY;
+                qint16 velocityZ;
+
+                void serialize(McDataStream &stream);
+            };
 
             struct ServerDifficulty {
                 quint8 difficulty;
@@ -216,6 +238,22 @@ namespace packets {
                 void serialize(McDataStream &stream);
             };
 
+            struct SetExperience {
+                float experienceBar;
+                qint32 level;
+                qint32 totalExperience;
+
+                void serialize(McDataStream &stream);
+            };
+
+            struct UpdateHealth {
+                float health;
+                qint32 food;
+                float foodSaturation;
+
+                void serialize(McDataStream &stream);
+            };
+
             struct SpawnPosition {
                 std::tuple<qint32, qint16, qint32> location;
 
@@ -224,6 +262,17 @@ namespace packets {
 
             struct KeepAlive {
                 qint64 keepAliveId;
+
+                void serialize(McDataStream &stream);
+            };
+
+            struct ChunkData {
+                qint32 chunkX;
+                qint32 chunkY;
+                bool fullChunk;
+                qint32 primaryBitMask;
+                QByteArray data;
+                std::vector<QByteArray> blockEntities;
 
                 void serialize(McDataStream &stream);
             };

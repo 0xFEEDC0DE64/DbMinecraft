@@ -6,18 +6,20 @@
 #include "statusclient.h"
 #include "loginclient.h"
 
-HandshakingClient::HandshakingClient(QTcpSocket &socket, Server &server) :
-    QObject{&server}, m_socket{socket}, m_server{server}, m_dataStream{&m_socket}
+HandshakingClient::HandshakingClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
+    QObject{&server}, m_socket{std::move(socket)}, m_server{server}, m_dataStream{m_socket.get()}
 {
-    m_socket.setParent(this);
+    m_socket->setParent(this);
 
-    connect(&m_socket, &QIODevice::readyRead, this, &HandshakingClient::readyRead);
-    connect(&m_socket, &QAbstractSocket::disconnected, this, &QObject::deleteLater);
+    connect(m_socket.get(), &QIODevice::readyRead, this, &HandshakingClient::readyRead);
+    connect(m_socket.get(), &QAbstractSocket::disconnected, this, &QObject::deleteLater);
 }
+
+HandshakingClient::~HandshakingClient() = default;
 
 void HandshakingClient::readyRead()
 {
-    while(m_socket.bytesAvailable())
+    while(m_socket && m_socket->bytesAvailable())
     {
         if(!m_packetSize)
         {
@@ -25,16 +27,16 @@ void HandshakingClient::readyRead()
             qDebug() << "packet size" << m_packetSize;
         }
 
-        if(m_socket.bytesAvailable() < m_packetSize)
+        if(m_socket->bytesAvailable() < m_packetSize)
         {
-            qWarning() << "packet not fully available" << m_socket.bytesAvailable();
+            qWarning() << "packet not fully available" << m_socket->bytesAvailable();
             return;
         }
 
         qint32 bytesRead;
         const auto type = m_dataStream.readVar<qint32>(bytesRead);
         m_packetSize -= bytesRead;
-        const auto buffer = m_socket.read(m_packetSize);
+        const auto buffer = m_socket->read(m_packetSize);
         Q_ASSERT(buffer.size() == m_packetSize);
         m_packetSize = 0;
 
@@ -57,10 +59,12 @@ void HandshakingClient::readPacket(packets::handshaking::serverbound::PacketType
         {
         using namespace serverbound;
         case Handshake::SocketState::StatusState:
-            new StatusClient{m_socket, m_server};
+            m_dataStream.setDevice({});
+            new StatusClient{std::move(m_socket), m_server};
             break;
         case Handshake::SocketState::LoginState:
-            new LoginClient{m_socket, m_server};
+            m_dataStream.setDevice({});
+            new LoginClient{std::move(m_socket), m_server};
             break;
         default:
             qCritical() << "client requested new state" << packet.nextState << "which is not allowed/invalid";
