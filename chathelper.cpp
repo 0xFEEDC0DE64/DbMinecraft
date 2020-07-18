@@ -1,25 +1,36 @@
 #include "chathelper.h"
 
 #include <QJsonDocument>
+#include <QJsonArray>
 
-QJsonObject normalTextObj(const QString &text)
+QJsonObject ChatPart::toObject() const
 {
-    return QJsonObject { { "text", text } };
-}
-
-QJsonObject boldTextObj(const QString &text)
-{
-    QJsonObject obj = normalTextObj(text);
-    obj["bold"] = true;
+    QJsonObject obj;
+    if (text.has_value())
+        obj["text"] = *text;
+    if (bold.has_value())
+        obj["bold"] = *bold;
+    if (italic.has_value())
+        obj["italic"] = *italic;
+    if (underlined.has_value())
+        obj["underlined"] = *underlined;
+    if (strikethrough.has_value())
+        obj["strikethrough"] = *strikethrough;
+    if (obfuscated.has_value())
+        obj["obfuscated"] = *obfuscated;
+    if (color.has_value())
+        obj["color"] = *color;
+    if (!extra.empty())
+    {
+        QJsonArray arr;
+        for (const auto &sub : extra)
+            arr.append(sub.toObject());
+        obj["extra"] = arr;
+    }
     return obj;
 }
 
-QString normalText(const QString &text)
+QString ChatPart::toString() const
 {
-    return QJsonDocument{normalTextObj(text)}.toJson();
-}
-
-QString boldText(const QString &text)
-{
-    return QJsonDocument{boldTextObj(text)}.toJson();
+    return QJsonDocument{toObject()}.toJson(QJsonDocument::Compact);
 }

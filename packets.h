@@ -116,8 +116,14 @@ namespace packets {
         namespace serverbound {
             Q_NAMESPACE
 
-            enum class PacketType { ClientSettings = 0x04, InteractEntity = 0x0E, PluginMessage = 0x0A };
+            enum class PacketType { ChatMessage = 0x02, ClientSettings = 0x04, InteractEntity = 0x0E, PluginMessage = 0x0A };
             Q_ENUM_NS(PacketType)
+
+            struct ChatMessage {
+                ChatMessage(McDataStream &stream);
+
+                QString message;
+            };
 
             struct ClientSettings {
                 ClientSettings(McDataStream &stream);

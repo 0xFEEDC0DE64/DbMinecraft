@@ -8,12 +8,12 @@
 #include "chathelper.h"
 #include "chunkhelper.h"
 
-PlayClient::PlayClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
-    QObject{&server}, m_socket{std::move(socket)}, m_server{server}, m_dataStream{m_socket.get()}
+PlayClient::PlayClient(const QString &name, std::unique_ptr<QTcpSocket> &&socket, Server &server) :
+    QObject{&server}, m_name{name}, m_socket{std::move(socket)}, m_server{server}, m_dataStream{m_socket.get()}
 {
     m_server.add(*this);
 
-    m_socket->setParent(this);
+    emit distributeChatMessage(ChatPart{.extra={ChatPart{.text=m_name,.color="red"},ChatPart{.text=tr(" joined the game!")}}}.toString());
 
     connect(m_socket.get(), &QIODevice::readyRead, this, &PlayClient::readyRead);
     connect(m_socket.get(), &QAbstractSocket::disconnected, this, &QObject::deleteLater);
@@ -52,22 +52,22 @@ PlayClient::PlayClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
         packet.fieldOfViewModifier = 60.;
         packet.serialize(m_dataStream);
     }
-    {
-        packets::play::clientbound::ChunkData packet;
-        packet.fullChunk = true;
-        packet.primaryBitMask = 0b11000; // send only 2 chunks
-        packet.data += createChunkSection();
-        packet.data += createChunkSection();
-        packet.data += createBiomes();  // we are in Overworld
+//    {
+//        packets::play::clientbound::ChunkData packet;
+//        packet.fullChunk = true;
+//        packet.primaryBitMask = 0b11000; // send only 2 chunks
+//        packet.data += createChunkSection();
+//        packet.data += createChunkSection();
+//        packet.data += createBiomes();  // we are in Overworld
 
-        for (int y = -3; y <= 3; y++)
-            for (int x = -3; x <= 3; x++)
-            {
-                packet.chunkX = x;
-                packet.chunkY = y;
-                packet.serialize(m_dataStream);
-            }
-    }
+//        for (int y = -3; y <= 3; y++)
+//            for (int x = -3; x <= 3; x++)
+//            {
+//                packet.chunkX = x;
+//                packet.chunkY = y;
+//                packet.serialize(m_dataStream);
+//            }
+//    }
 //    {
 //        packets::play::clientbound::SpawnMob packet;
 //        packet.entityId = 2;
@@ -88,10 +88,14 @@ PlayClient::PlayClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
 
 PlayClient::~PlayClient()
 {
+    qDebug() << "called" << m_socket->readAll();
+
+    emit distributeChatMessage(ChatPart{.extra={ChatPart{.text=m_name,.color="red"},ChatPart{.text=tr(" left the game!")}}}.toString());
+
     m_server.remove(*this);
 }
 
-void PlayClient::keepAlive()
+void PlayClient::tick()
 {
     const auto now = QDateTime::currentDateTime();
     if (!m_lastKeepAliveSent.isValid() || m_lastKeepAliveSent.secsTo(now) >= 1)
@@ -101,24 +105,13 @@ void PlayClient::keepAlive()
         packet.serialize(m_dataStream);
         m_lastKeepAliveSent = now;
     }
-}
 
-void PlayClient::sendChatMessage()
-{
-    const auto now = QDateTime::currentDateTime();
     if (!m_lastChatMessage.isValid() || m_lastChatMessage.secsTo(now) >= 2)
     {
-        packets::play::clientbound::ChatMessage packet;
-        packet.jsonData = normalText(tr("Time chaged to %0").arg(QTime::currentTime().toString()));
-        packet.position = packets::play::clientbound::ChatMessage::Chat;
-        packet.serialize(m_dataStream);
+        sendChatMessage(ChatPart{.text=tr("Time chaged to %0").arg(QTime::currentTime().toString())}.toString());
         m_lastChatMessage = now;
     }
-}
 
-void PlayClient::randomizeStats()
-{
-    const auto now = QDateTime::currentDateTime();
     if (!m_lastStats.isValid() || m_lastStats.msecsTo(now) >= 500)
     {
         {
@@ -138,21 +131,25 @@ void PlayClient::randomizeStats()
 
         m_lastStats = now;
     }
-}
 
-void PlayClient::trialDisconnect()
-{
-    const auto now = QDateTime::currentDateTime();
     if (m_connectedSince.secsTo(now) >= 30)
     {
         packets::play::clientbound::Disconnect packet;
-        packet.reason = boldText("Your trial has ended.");
+        packet.reason = ChatPart{.text="Your trial has ended.",.bold=true}.toString();
         packet.serialize(m_dataStream);
         m_socket->flush();
         m_dataStream.setDevice({});
         new ClosedClient{std::move(m_socket), m_server};
         deleteLater();
     }
+}
+
+void PlayClient::sendChatMessage(const QString &message)
+{
+    packets::play::clientbound::ChatMessage packet;
+    packet.jsonData = message;
+    packet.position = packets::play::clientbound::ChatMessage::Chat;
+    packet.serialize(m_dataStream);
 }
 
 void PlayClient::readyRead()
@@ -189,7 +186,20 @@ void PlayClient::readPacket(packets::play::serverbound::PacketType type, const Q
     switch(type)
     {
     using namespace packets::play;
-    case serverbound::PacketType::ClientSettings:
+    using namespace serverbound;
+    case PacketType::ChatMessage:
+    {
+        qDebug() << type;
+        {
+            serverbound::ChatMessage packet{dataStream};
+            qDebug() << "message" << packet.message;
+            const auto formatted = ChatPart{.extra={ChatPart{.text=m_name,.color="red"},ChatPart{.text=": " + packet.message}}}.toString();
+            emit distributeChatMessage(formatted);
+            sendChatMessage(formatted);
+        }
+        break;
+    }
+    case PacketType::ClientSettings:
     {
         qDebug() << type;
         {

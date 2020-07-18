@@ -23,6 +23,12 @@ Server::Server(QObject *parent) :
 
 void Server::add(PlayClient &playClient)
 {
+    for (auto otherClient : m_playClients)
+    {
+        connect(&playClient, &PlayClient::distributeChatMessage, otherClient, &PlayClient::sendChatMessage);
+        connect(otherClient, &PlayClient::distributeChatMessage, &playClient, &PlayClient::sendChatMessage);
+    }
+
     m_playClients.insert(&playClient);
 }
 
@@ -34,12 +40,7 @@ void Server::remove(PlayClient &playClient)
 void Server::timeout()
 {
     for (auto client : m_playClients)
-    {
-        client->keepAlive();
-        client->sendChatMessage();
-        client->randomizeStats();
-        client->trialDisconnect();
-    }
+        client->tick();
 }
 
 void Server::newConnection()

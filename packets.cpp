@@ -61,6 +61,11 @@ void packets::login::clientbound::LoginSuccess::serialize(McDataStream &stream)
     stream.writeRawData(buffer.constData(), buffer.length());
 }
 
+packets::play::serverbound::ChatMessage::ChatMessage(McDataStream &stream)
+{
+    message = stream.readVar<QString>();
+}
+
 packets::play::serverbound::ClientSettings::ClientSettings(McDataStream &stream)
 {
     locale = stream.readVar<QString>();

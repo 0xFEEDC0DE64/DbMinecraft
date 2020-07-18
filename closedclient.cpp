@@ -8,8 +8,6 @@
 ClosedClient::ClosedClient(std::unique_ptr<QTcpSocket> &&socket, Server &server) :
     QObject{&server}, m_socket{std::move(socket)}, m_server{server}, m_dataStream{m_socket.get()}
 {
-    m_socket->setParent(this);
-
     connect(m_socket.get(), &QIODevice::readyRead, this, &ClosedClient::readyRead);
     connect(m_socket.get(), &QAbstractSocket::disconnected, this, &QObject::deleteLater);
 

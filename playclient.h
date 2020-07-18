@@ -15,13 +15,16 @@ class PlayClient : public QObject
     Q_OBJECT
 
 public:
-    explicit PlayClient(std::unique_ptr<QTcpSocket> &&socket, Server &server);
+    explicit PlayClient(const QString &name, std::unique_ptr<QTcpSocket> &&socket, Server &server);
     ~PlayClient() override;
 
-    void keepAlive();
-    void sendChatMessage();
-    void randomizeStats();
-    void trialDisconnect();
+    void tick();
+
+signals:
+    void distributeChatMessage(const QString &message);
+
+public slots:
+    void sendChatMessage(const QString &message);
 
 private slots:
     void readyRead();
@@ -29,6 +32,7 @@ private slots:
 private:
     void readPacket(packets::play::serverbound::PacketType type, const QByteArray &buffer);
 
+    const QString m_name;
     std::unique_ptr<QTcpSocket> m_socket;
     Server &m_server;
 
