@@ -48,5 +48,4 @@ void Server::newConnection()
     auto connection = std::unique_ptr<QTcpSocket>(m_server.nextPendingConnection());
     if (connection)
         new HandshakingClient{std::move(connection), *this};
-    //clients.push_back();
 }

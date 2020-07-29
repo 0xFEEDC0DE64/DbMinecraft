@@ -160,9 +160,9 @@ namespace packets {
         namespace clientbound {
             Q_NAMESPACE
 
-            enum class PacketType { SpawnMob = 0x03, ServerDifficulty = 0x0D, ChatMessage = 0x0E, PluginMessage = 0x19, Disconnect = 0x1B,
-                                    KeepAlive = 0x21, ChunkData = 0x22, JoinGame = 0x25, PlayerAbilities = 0x2E, PlayerPositionAndLook = 0x32,
-                                    SetExperience = 0x43, UpdateHealth = 0x44, SpawnPosition = 0x49 };
+            enum class PacketType { SpawnMob = 0x03, ServerDifficulty = 0x0D, ChatMessage = 0x0E, OpenWindow = 0x14, PluginMessage = 0x19,
+                                    Disconnect = 0x1B, KeepAlive = 0x21, ChunkData = 0x22, JoinGame = 0x25, PlayerAbilities = 0x2E,
+                                    PlayerPositionAndLook = 0x32, SetExperience = 0x43, UpdateHealth = 0x44, SpawnPosition = 0x49 };
             Q_ENUM_NS(PacketType)
 
             // does not work yet, client shows exception
@@ -193,6 +193,16 @@ namespace packets {
                 QString jsonData;
                 enum Position : qint8 { Chat, SystemMessage, GameInfo };
                 Position position;
+
+                void serialize(McDataStream &stream);
+            };
+
+            struct OpenWindow {
+                quint8 windowId;
+                QString windowType;
+                QString windowTitle;
+                quint8 numberOfSlots;
+                std::optional<qint32> entityId;
 
                 void serialize(McDataStream &stream);
             };

@@ -106,12 +106,6 @@ void PlayClient::tick()
         m_lastKeepAliveSent = now;
     }
 
-    if (!m_lastChatMessage.isValid() || m_lastChatMessage.secsTo(now) >= 2)
-    {
-        sendChatMessage(ChatPart{.text=tr("Time chaged to %0").arg(QTime::currentTime().toString())}.toString());
-        m_lastChatMessage = now;
-    }
-
     if (!m_lastStats.isValid() || m_lastStats.msecsTo(now) >= 500)
     {
         {
@@ -131,17 +125,6 @@ void PlayClient::tick()
 
         m_lastStats = now;
     }
-
-    if (m_connectedSince.secsTo(now) >= 30)
-    {
-        packets::play::clientbound::Disconnect packet;
-        packet.reason = ChatPart{.text="Your trial has ended.",.bold=true}.toString();
-        packet.serialize(m_dataStream);
-        m_socket->flush();
-        m_dataStream.setDevice({});
-        new ClosedClient{std::move(m_socket), m_server};
-        deleteLater();
-    }
 }
 
 void PlayClient::sendChatMessage(const QString &message)
@@ -150,6 +133,17 @@ void PlayClient::sendChatMessage(const QString &message)
     packet.jsonData = message;
     packet.position = packets::play::clientbound::ChatMessage::Chat;
     packet.serialize(m_dataStream);
+}
+
+void PlayClient::disconnectClient(const QString &reason)
+{
+    packets::play::clientbound::Disconnect packet;
+    packet.reason = reason;
+    packet.serialize(m_dataStream);
+    m_socket->flush();
+    m_dataStream.setDevice({});
+    new ClosedClient{std::move(m_socket), m_server};
+    deleteLater();
 }
 
 void PlayClient::readyRead()
@@ -193,9 +187,34 @@ void PlayClient::readPacket(packets::play::serverbound::PacketType type, const Q
         {
             serverbound::ChatMessage packet{dataStream};
             qDebug() << "message" << packet.message;
-            const auto formatted = ChatPart{.extra={ChatPart{.text=m_name,.color="red"},ChatPart{.text=": " + packet.message}}}.toString();
-            emit distributeChatMessage(formatted);
-            sendChatMessage(formatted);
+            if (packet.message.startsWith('/'))
+            {
+                auto args = packet.message.split(' ', Qt::SkipEmptyParts);
+                if (args.first() == "/help")
+                {
+                    sendChatMessage(ChatPart{.text=tr("Help:")}.toString());
+                    sendChatMessage(ChatPart{.text=tr(" * /help")}.toString());
+                    sendChatMessage(ChatPart{.text=tr(" * /disconnect")}.toString());
+                    sendChatMessage(ChatPart{.text=tr(" * /menu")}.toString());
+                }
+                else if (args.first() == "/disconnect")
+                {
+                    disconnectClient(ChatPart{.text="Your trial has ended.",.bold=true}.toString());
+                }
+                else if (args.first() == "/menu")
+                {
+                }
+                else
+                {
+                    sendChatMessage(ChatPart{.text=tr("Unknown command %0").arg(args.first()),.color="red"}.toString());
+                }
+            }
+            else
+            {
+                const auto formatted = ChatPart{.extra={ChatPart{.text=m_name,.color="red"},ChatPart{.text=": " + packet.message}}}.toString();
+                sendChatMessage(formatted);
+                emit distributeChatMessage(formatted);
+            }
         }
         break;
     }

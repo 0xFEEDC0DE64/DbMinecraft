@@ -25,6 +25,7 @@ signals:
 
 public slots:
     void sendChatMessage(const QString &message);
+    void disconnectClient(const QString &reason);
 
 private slots:
     void readyRead();
@@ -43,6 +44,4 @@ private:
     const QDateTime m_connectedSince{QDateTime::currentDateTime()};
     QDateTime m_lastKeepAliveSent;
     QDateTime m_lastKeepAliveReceived;
-    QDateTime m_lastChatMessage;
-    QDateTime m_lastStats;
 };

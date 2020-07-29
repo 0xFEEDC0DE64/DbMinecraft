@@ -135,6 +135,21 @@ void packets::play::clientbound::ChatMessage::serialize(McDataStream &stream)
     stream.writeRawData(buffer.constData(), buffer.length());
 }
 
+void packets::play::clientbound::OpenWindow::serialize(McDataStream &stream)
+{
+    QByteArray buffer;
+    McDataStream tempStream(&buffer, QIODevice::WriteOnly);
+    tempStream.writeVar<qint32>(qint32(PacketType::OpenWindow));
+    tempStream << windowId;
+    tempStream.writeVar<QString>(windowType);
+    tempStream.writeVar<QString>(windowTitle);
+    tempStream << numberOfSlots;
+    if (entityId.has_value())
+        tempStream << *entityId;
+    stream.writeVar<qint32>(buffer.length());
+    stream.writeRawData(buffer.constData(), buffer.length());
+}
+
 void packets::play::clientbound::PluginMessage::serialize(McDataStream &stream)
 {
     QByteArray buffer;
